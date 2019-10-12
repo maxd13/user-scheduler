@@ -94,6 +94,15 @@ char* Ipath(Process p){
     return p->Ipath;
 }
 
+// An Ipath process, which makes reference to another, can be changed by this routine
+// so as to have its STIME value changed to start_time.
+// An error will be generated if the MAKES_REFERENCE flag is off.
+void resolve(Process p, unsigned char start_time){
+    if(!POLICY_MAKES_REFERENCE(p->policy))
+        handle("attempted to resolve process at %s which is not referential.\n");
+    p->policy = (p->policy & 0x3FF) | SET_I(start_time);
+}
+
 // Free the memory associated with the process.
 void free_process(Process p){
     free(p);

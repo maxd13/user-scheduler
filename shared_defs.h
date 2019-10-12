@@ -8,14 +8,17 @@
 typedef struct process* Process;
 
 // Creates a new Process.
-// A process is immutable, so after creation its path and policy cannot be changed.
+// A process which does not make reference to another is immutable,
+// so after creation its path and policy cannot be changed.
 Process create_process(const char* path, unsigned short policy);
 
 // Creates the process with an extra path used for scheduling.
 // The MAKES_REFERENCE flag is considered mandatory for the policy argument,
 // but for the convenience of the user it is set automatically by the function call
-// if it is not set. 
-// See Ipath below for details.
+// if it is not set. See Ipath below for details.
+// A process with an Ipath can have its policy changed so as to have a new I value, 
+// but otherwise it cannot change in any other way.
+// See resolve below for details.
 Process create_process_with_relative_schedule(const char* path, char* Ipath, unsigned short policy);
 
 // Process policy.
@@ -29,9 +32,10 @@ unsigned short policy(Process p);
 
 // If the PRIORITY flag is specified, the next 3 bits after the flags are for priority,
 // which for convenience are to be specified using the P0, P1, P2... macros below.
+// other bits are meaningless.
 
 // If the ROUND_ROBIN flag is specified, the 12 bits after the flags 
-// are used to tell the process scheduler to update the time each process runs in the round robin algorithm.
+// are used to tell the process scheduler to update the time each process runs in the round robin algorithm (quantum).
 // A value of 0 mantains the current time. The time is specified in milliseconds, and ranges in [0-4095].
 
 // Notice the flags ROUND_ROBIN, REAL_TIME and PRIORITY are mutually exclusive,
@@ -80,14 +84,14 @@ unsigned short policy(Process p);
 #define GET_PRIORITY(x)                ((x) >> 4) & 0x07
 #define GET_D(x)                       ((x) >> 4) & 0x3F
 #define GET_I(x)                       ((x) >> 10) & 0x3F
-#define UPDATE_ROBIN_TIME(x)           ((x) >> 4) & 0x0FFF
+#define GET_QUANTUM(x)                 ((x) >> 4)
 
 //set values
-#define SET_D(x)                       ((x) & 0x3F) >> 4 
-#define SET_I(x)                       ((short)((x) & 0x3F)) >> 10
+#define SET_D(x)                       ((short)((x) & 0x3F)) << 4 
+#define SET_I(x)                       ((short)((x) & 0x3F)) << 10
 // notice that unlike the other options which might as well receive unsigned char,
 // this option requires an unsigned short.
-#define SET_ROBIN_TIME(x)              ((x) & 0x0FFF) >> 4
+#define SET_ROBIN_TIME(x)              ((x) & 0x0FFF) << 4
 
 // priorities (n * 16 == n << 4).
 #define P0 0
@@ -98,6 +102,42 @@ unsigned short policy(Process p);
 #define P5 80
 #define P6 96
 #define P7 112
+
+// UTILITIES:
+
+// gets start time of a process
+#define STIME(p)                             GET_I(policy(p))
+
+// gets duration time of a process.
+// total time predicted to be used by process.
+#define DTIME(p)                             GET_D(policy(p))
+
+// gets end time of a process
+#define ETIME(p)                             (STIME(p) + DTIME(p))
+
+// gets end time of a policy
+#define PETIME(x)                             (GET_I(x) + GET_D(x))
+
+// compare two REAL-TIME processes for earlier start times.
+// Tests p > q.
+#define PROCESS_CMP(p, q)                    (STIME(p) > STIME(q))
+
+// used for switching a process according to its policy.
+#define PLP(x)                               ((x) & 0x07)
+#define PL(p)                                PLP(policy(p))
+
+
+// example: 
+//     switch (PL(p)){
+//         case REAL_TIME: [...]
+//         case ROUND_ROBIN: [...]
+//         case PRIORITY: [...]
+//         case 0: [...] //no flag is set
+//         default: [...] //incompatible flags
+//     }
+
+// However, the case 0 and default are garanteed never to occur due to the Process implementation, 
+// so they need not be treated.
 
 // Usage:
 // To create the policy, just use the bitwise OR operator: |
@@ -113,7 +153,7 @@ unsigned short policy(Process p);
 // If I + D > 60, the policy is also invalid.
 // Notice that if the I option is a path, this does not validate the last restriction.
 
-// Returns an error message if the policy is invalid
+// Returns an error message string if the policy is invalid
 // and NULL if it is valid.
 const char* validate_policy(unsigned short policy);
 
@@ -128,6 +168,11 @@ char* path(Process p);
 // Path of the executable that could be specified with the I option.
 // This only makes sense when the MAKES_REFERENCE flag is set. 
 char* Ipath(Process p);
+
+// An Ipath process, which makes reference to another, can be changed by this routine
+// so as to have its STIME value changed to start_time.
+// An error will be generated if the MAKES_REFERENCE flag is off.
+void resolve(Process p, unsigned char start_time);
 
 // Free the memory associated with the process.
 void free_process(Process p);
