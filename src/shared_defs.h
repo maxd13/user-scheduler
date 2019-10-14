@@ -2,6 +2,7 @@
 // but it is also mostly used as an interface for the Process abstract data type.
 // Notice that the scheduler and interpreter will not be linked together,
 // but both should be linked with process.c
+#pragma once;
 
 #define EVER ;;  
 
