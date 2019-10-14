@@ -3,7 +3,6 @@
 #include <string.h>
 #include <assert.h>
 #include "process_table.h"
-#include "shared_defs.h"
 #include "rax/rax.h"
 
 // Process Queue: internal abstract data type.
@@ -137,33 +136,55 @@ static ProcessHeap createHeap(){
 // recursive binary search based on processes ordered by start times
 static int bin_search_rec(ProcessHeap h, int i, int j, unsigned char time){
     int m;
+    static char last;
     if(i > j) return j;
     m = (i+ j) / 2;
-    if (time > STIME(h->node[m]))
+    if (time > STIME(h->node[m])){
         return bin_search_rec(h, m+1, j, time);
-    if (time < STIME(h->node[m]))
+    }
+    if (time < STIME(h->node[m])){
         return bin_search_rec(h, i, m-1, time);
+    }
     return m;
 }
 
 // finds the position in the heap corresponding to the current time.
-// Just a wrapper for the last function.
+// static int bin_search(ProcessHeap h, unsigned char time){
+//     if (!h || h->size <= 0) return -1;
+//     int i = 0;
+//     int j = h->size;
+//     int m;
+//     while (i < j){
+//         m = (i + j)/2;
+//         if (time > STIME(h->node[m])) i = m + 1;
+//         else j = m;
+//     }
+//     return i;
+// }
+
+// finds the position in the heap corresponding to the current time.
 static int bin_search(ProcessHeap h, unsigned char time){
+    assert(h);
     return bin_search_rec(h, 0, h->size - 1, time);
 }
 
 // finds the position the process should be in the heap, 
 // assuming the heap is ordered by the start time of processes.
 static int searchProcess(ProcessHeap h, Process p){
+    assert(h);
+    assert(p);
     return bin_search(h, STIME(p));
 }
 
 static void insertHeap(ProcessHeap h, Process new){
     // remember: assertions should be disabled by gcc in production.
+    assert(h);
     assert(POLICY_REAL_TIME(policy(new)));
 	if(h->size + 1 < MAX_RTIME){
-        int index = searchProcess(h, new);
-        if (index == h->size - 1 && PROCESS_CMP(new, h->node[index]))
+        int index = searchProcess(h, new); // if -1 the heap is empty
+        if (index < 0)
+            h->node[0] = new;
+        else if (index == h->size - 1 && PROCESS_CMP(new, h->node[index]))
             h->node[h->size] = new;
         else{
             // notice this gives us worst case O(n^2).
@@ -237,7 +258,7 @@ ProcessTable create_table(){
     new->run_priority = 1;
 
     new->robin = NULL;
-    new->quantum = 500; // default quantum is 0.5 secs.
+    new->quantum = QUANTUM;
     return new;
 }
 
@@ -304,7 +325,7 @@ char getRan (ProcessTable table, Process p){
 // Inserts new process in the process table.
 // Return 1 if the addition should cause the added process to be immediatly executed (preemption),
 // and -1 if the process couldn't be added, otherwise 0.
-// The cur_policy is the policy of the currently running process, or NULL if there isn't any.
+// The cur_policy is the policy of the currently running process, or O if there isn't any.
 // The cur_time parameter gives the current time in seconds since the beggining of the minute.
 // Both arguments are used to determine if preemption occurs.
 // The time_run_last parameter should tell how long the added process ran for last time it was executed. 
@@ -315,6 +336,7 @@ char insertProcess(ProcessTable table, Process p, unsigned short cur_policy, uns
     assert(cur_time <= 60);
     unsigned short pol = policy(p);
     char preemption = 0;
+    char priority;
     switch (PLP(pol)){
         case REAL_TIME: 
             if (!table->real_time) table->real_time = createHeap();
@@ -337,7 +359,10 @@ char insertProcess(ProcessTable table, Process p, unsigned short cur_policy, uns
                     return -1;
                 }
                 //sets this processes's start time to the end time of the referenced process.
-                else resolve(p, ETIME((Process) reference));
+                else {
+                    resolve(p, ETIME((Process) reference));
+                    pol = policy(p);
+                }
             }
 
             // Now we must check whether this process conflicts with other processes in the heap.
@@ -413,7 +438,7 @@ char insertProcess(ProcessTable table, Process p, unsigned short cur_policy, uns
             // no preemption should occur in favour of a ROUND-ROBIN process.
             break;
         case PRIORITY:
-            char priority = GET_PRIORITY(pol);
+            priority = GET_PRIORITY(pol);
             if (!table->levels[priority]) table->levels[priority] = createQueue();
             
             // if the level is empty it is not being counted in the weighted sum,
@@ -523,23 +548,38 @@ static Process case_no_real_time(ProcessTable table){
 // i.e. this routine should only be called during a context switch.
 // Returns NULL if there are no processes that can be run.
 Process next_process(ProcessTable table, unsigned char cur_time){
+    assert(table);
+
     // First we need to determine the policy of the next process.
     // To do this we check first whether it is REAL-TIME or not, 
     // if it isn't will be really easy to determine its policy then.
 
     // figure out the position close to which the REAL-TIME process to run would be.
-    int pos = bin_search(table->real_time, cur_time);
+    int pos = table->real_time ? bin_search(table->real_time, cur_time) : -1;
     
     // In case pos returns negative, there are no REAL-TIME processes to run.
     // So we check that.
     if (pos >= 0){
+
+        // If the position is out of bounds, 
+        // then only the last process may possibly be allowed to run.
+        // So we handle that case.
+        // if(pos >= table->real_time->size){
+        //     Process cur = table->real_time->node[table->real_time->size - 1];
+        //     char cur_ran = table->real_time->ran[table->real_time->size - 1];
+        //     if (cur_time < ETIME(cur))
+        //         if (!cur_ran) return cur;
+        //     return next_process(table, ETIME(cur));
+        // }
+
+
         // get previous and current process
         Process prev = pos > 0 ? table->real_time->node[pos - 1] : NULL;
         char prev_ran = pos > 0 ? table->real_time->ran[pos - 1] : 0;
         Process cur = table->real_time->node[pos];
+        char cur_ran = table->real_time->ran[pos];
 
         // Now we know that start time of prev < cur_time 
-        // and start time of cur >= curtime.
 
         // So we check first if the end time of prev is already up, 
         // if it isn't, and the process has not yet run its course,
@@ -548,17 +588,24 @@ Process next_process(ProcessTable table, unsigned char cur_time){
             return prev;
 
         // To see if it is cur that has to run, suffices to check
-        // whether its start time is EQUAL to the current time.
-        // If they are different there will be a least 1 second of difference.
-        // The scheduler can run a lot of processes in one second.
-        // We also don't expect the ran flag to be set for cur, so we won't check it.
-        if (STIME(cur) == cur_time)
-            return cur;
+        // whether curr time is in betwen the start time of cur
+        // inclusive, and the end time of cur, exclusive.
+        // If cur_time is less than the start time 
+        // there will be a least 1 second of difference between them,
+        // and the scheduler can run a lot of processes in one second.
+        // However, if the ran flag is set for cur, we should really be executing
+        // the next process if one is avaiable.
+        if (STIME(cur) <= cur_time && cur_time < ETIME(cur)){
+            if (!cur_ran) return cur;
+            return next_process(table, ETIME(cur));
+        }
 
         // However, we should also check the case cur MAKES_REFERENCE to prev, in which case,
-        // if prev has already run, we should allow cur to run immediately
-        if (POLICY_MAKES_REFERENCE(policy(cur)) && prev_ran)
-            return cur;
+        // if prev has already run, we should allow cur to run immediately, unless cur_ran is set.
+        if (POLICY_MAKES_REFERENCE(policy(cur)) && prev_ran){
+            if (!cur_ran) return cur;
+            if (cur_time < ETIME(cur)) return next_process(table, ETIME(cur));
+        }
     }
 
     // If the process to run is neither prev nor cur, it must have some other execution policy.
@@ -587,4 +634,9 @@ void reset(ProcessTable table){
 
     // Reset time run for ROUND-ROBIN processes.
     if (table->robin) table->robin->time_run = 0;
+}
+
+// Gets the current time quantum for round robin processes.
+unsigned short getQuantum(ProcessTable table){
+    return table->quantum;
 }

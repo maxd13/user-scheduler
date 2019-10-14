@@ -2,7 +2,7 @@
 // but it is also mostly used as an interface for the Process abstract data type.
 // Notice that the scheduler and interpreter will not be linked together,
 // but both should be linked with process.c
-#pragma once;
+#pragma once
 
 #define EVER ;;  
 
@@ -72,27 +72,27 @@ unsigned short policy(Process p);
 //flags
 #define REAL_TIME 0x01
 #define ROUND_ROBIN 0x02
-#define PRIORITY 0x03
-#define MAKES_REFERENCE 0x04
+#define PRIORITY 0x04
+#define MAKES_REFERENCE 0x08
 
 // returns true or false depending on whether the flag is set.
-#define POLICY_ROUND_ROBIN(x)          (x) & ROUND_ROBIN
-#define POLICY_REAL_TIME(x)            (x) & REAL_TIME
-#define POLICY_PRIORITY(x)             (x) & PRIORITY
-#define POLICY_MAKES_REFERENCE(x)      (x) & MAKES_REFERENCE
+#define POLICY_ROUND_ROBIN(x)          ((x) & ROUND_ROBIN)
+#define POLICY_REAL_TIME(x)            ((x) & REAL_TIME)
+#define POLICY_PRIORITY(x)             ((x) & PRIORITY)
+#define POLICY_MAKES_REFERENCE(x)      ((x) & MAKES_REFERENCE)
 
 //obtain values.
-#define GET_PRIORITY(x)                ((x) >> 4) & 0x07
-#define GET_D(x)                       ((x) >> 4) & 0x3F
-#define GET_I(x)                       ((x) >> 10) & 0x3F
+#define GET_PRIORITY(x)                (((x) >> 4) & 0x07)
+#define GET_D(x)                       (((x) >> 4) & 0x3F)
+#define GET_I(x)                       (((x) >> 10) & 0x3F)
 #define GET_QUANTUM(x)                 ((x) >> 4)
 
 //set values
-#define SET_D(x)                       ((short)((x) & 0x3F)) << 4 
-#define SET_I(x)                       ((short)((x) & 0x3F)) << 10
+#define SET_D(x)                       (((short)((x) & 0x3F)) << 4)
+#define SET_I(x)                       (((short)((x) & 0x3F)) << 10)
 // notice that unlike the other options which might as well receive unsigned char,
 // this option requires an unsigned short.
-#define SET_ROBIN_TIME(x)              ((x) & 0x0FFF) << 4
+#define SET_ROBIN_TIME(x)              (((x) & 0x0FFF) << 4)
 
 // priorities (n * 16 == n << 4).
 #define P0 0

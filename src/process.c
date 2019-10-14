@@ -50,7 +50,7 @@ unsigned short policy(Process p){
 // Setting incompatible flags makes the policy invalid.
 const char* validate_policy(unsigned short policy){
     if(POLICY_MAKES_REFERENCE(policy) && !POLICY_REAL_TIME(policy))
-        return "MAKES_REFERENCE flag specified, but policy is not REAL_TIME.";
+        return "MAKES_REFERENCE flag specified, but policy is not REAL-TIME.";
     switch (policy & 0x07){
         case REAL_TIME:
             if (POLICY_MAKES_REFERENCE(policy)){
@@ -59,6 +59,8 @@ const char* validate_policy(unsigned short policy){
             }
             else if(GET_D(policy) + GET_I(policy) > 60)
                 return "policy would take more than one minute to run.";
+            if (GET_D(policy) == 0)
+                return "duration of REAL-TIME process should not be 0.";
             break;
         case ROUND_ROBIN:
             break;
@@ -77,7 +79,7 @@ const char* validate_policy(unsigned short policy){
 // Calls the error handler with a default message in case a policy is not valid.
 // Does nothing otherwise.
 void handle_policy(unsigned short policy){
-    char* msg;
+    const char* msg;
     if(msg = validate_policy(policy)) 
         handle("policy is not valid: %s\n", msg);
 }

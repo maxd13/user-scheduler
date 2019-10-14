@@ -1,12 +1,15 @@
-// Interface for ProcessTable TAD
+// Interface for ProcessTable abstract data type
 #pragma once
+#include "shared_defs.h"
 
 // Maximal number of REAL-TIME processes allowed in the process table.
 #define MAX_RTIME 100
-// number of priority levels for priority based processes.
+// Number of priority levels for priority based processes.
 #define PRIOR_LEVELS 8
-// total percentage of avaiable time dedicated to running priority based processes.
+// Total percentage of avaiable time dedicated to running priority based processes.
 #define PRIORITY_TIME 0.8
+// Default quantum value in milliseconds
+#define QUANTUM 500 // default quantum is 0.5 secs.
 
 typedef struct process_table* ProcessTable;
 
@@ -27,7 +30,7 @@ char getRan (ProcessTable table, Process p);
 // Inserts new process in the process table.
 // Return 1 if the addition should cause the added process to be immediatly executed (preemption),
 // and -1 if the process couldn't be added, otherwise 0.
-// The cur_policy is the policy of the currently running process, or NULL if there isn't any.
+// The cur_policy is the policy of the currently running process, or 0 if there isn't any.
 // The cur_time parameter gives the current time in seconds since the beggining of the minute.
 // Both arguments are used to determine if preemption occurs.
 // The time_run_last parameter should tell how long the added process ran for last time it was executed. 
@@ -45,3 +48,6 @@ Process next_process(ProcessTable table, unsigned char cur_time);
 // Resets information associated with the process table for the next minute execution.
 // This routine should be called every 60 seconds.
 void reset(ProcessTable table);
+
+// Gets the current time quantum for round robin processes.
+unsigned short getQuantum(ProcessTable table);
