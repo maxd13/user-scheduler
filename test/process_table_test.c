@@ -30,6 +30,8 @@ void test_set_and_get_quantum(void){
     Process next = next_process(table, 0);
     TEST_ASSERT_EQUAL_PTR(p, next);
     // free everything.
+    // p was popped from the table, so it should be freed separately.
+    free_process(p);
     free_table(table);
 }
 
@@ -81,15 +83,29 @@ void test_set_and_get_ran(void){
     TEST_ASSERT_NULL(next);
 
     // Suppose now process p has exited at second 23
-    // it is then the other process that should be allowed to run
+    // then since 'other' makes no reference to p,
+    // no process should be allowed to run.
     setRan(table, p);
     next = next_process(table, 23);
-    TEST_ASSERT_EQUAL_PTR(other, next);
+    TEST_ASSERT_NULL(next);
 
     // check that it really cant run
     TEST_ASSERT_TRUE(getRan(table, p));
     // check that the other process is not marked as having ran
     TEST_ASSERT_FALSE(getRan(table, other));
+
+    // Suppose however we were to create a ROUND-ROBIN process now, 
+    // we would expect this process to be able to run at 23.
+    Process robin = create_process("robin", ROUND_ROBIN);
+    if (insertProcess(table, robin, 0, 0, 0)) 
+        TEST_FAIL_MESSAGE("No preemption should have occured");
+    
+    // test that at time 23, robin is allowed to run
+    next = next_process(table, 23);
+    TEST_ASSERT_EQUAL_PTR(robin, next);
+
+    // robin was popped from the table. Lets free it already.
+    free_process(robin);
 
     // Suppose now we go to the next minute, by reseting the table.
     // Then we want process p to still be able to run at 20, but not before 20.
@@ -171,6 +187,9 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
         // test that at time i, robin is allowed to run
         next = next_process(table, i);
         TEST_ASSERT_EQUAL_PTR(robin, next);
+        // this simulates that next was run for QUANTUM milliseconds,
+        // was preempted, and then reinserted in the process table.
+        TEST_ASSERT_FALSE(insertProcess(table, next, policy(next), i, QUANTUM));
     }
 
     // test that p2 runs between seconds 20 through 24 inclusive.
@@ -192,9 +211,41 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
         // test that at time i, robin is allowed to run
         next = next_process(table, i);
         TEST_ASSERT_EQUAL_PTR(robin, next);
+        TEST_ASSERT_FALSE(insertProcess(table, next, policy(next), i, QUANTUM));
     }
 
+    // Suppose now that p1 stops at second 2,
+    // and p2 stops at second 22.
+    // The we should expect ref1 and ref2 to run immediatly after,
+    // since they are referential processes. So we should not
+    // expect the robin process to run.
+
+    setRan(table, p1);
+    setRan(table, p2);
+
+    next = next_process(table, 2);
+    TEST_ASSERT_EQUAL_PTR(ref1, next);
+
+    next = next_process(table, 22);
+    TEST_ASSERT_EQUAL_PTR(ref2, next);
+
+    // Supposing now ref1 stops at 7,
+    // and ref2 stops at 27, we should 
+    // expect robin to run
+
+    setRan(table, ref1);
+    setRan(table, ref2);
+
+    next = next_process(table, 7);
+    TEST_ASSERT_EQUAL_PTR(robin, next);
+    TEST_ASSERT_FALSE(insertProcess(table, next, policy(next), 7, QUANTUM));
+
+    next = next_process(table, 27);
+    TEST_ASSERT_EQUAL_PTR(robin, next);
+    TEST_ASSERT_FALSE(insertProcess(table, next, policy(next), 27, QUANTUM));
+
     // just free everything now
+    // robin is currently in the table.
     free_table(table);
 
 }

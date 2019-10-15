@@ -119,10 +119,6 @@ unsigned short policy(Process p);
 // gets end time of a policy
 #define PETIME(x)                             (GET_I(x) + GET_D(x))
 
-// compare two REAL-TIME processes for earlier start times.
-// Tests p > q.
-#define PROCESS_CMP(p, q)                    (STIME(p) > STIME(q))
-
 // used for switching a process according to its policy.
 #define PLP(x)                               ((x) & 0x07)
 #define PL(p)                                PLP(policy(p))

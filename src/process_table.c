@@ -126,50 +126,24 @@ static ProcessHeap createHeap(){
 	return new;
 }
 
-// compare two REAL-TIME processes for earlier start times based on
-// their position in the internal array of a process heap.
-// Tests i > j.
-// static char pcmpH(ProcessHeap h, int i, int j){
-//     return PROCESS_CMP(h->node[i], h->node[j]);
-// }
-
-// recursive binary search based on processes ordered by start times
-static int bin_search_rec(ProcessHeap h, int i, int j, unsigned char time){
-    int m;
-    static char last;
-    if(i > j) return j;
-    m = (i+ j) / 2;
-    if (time > STIME(h->node[m])){
-        return bin_search_rec(h, m+1, j, time);
-    }
-    if (time < STIME(h->node[m])){
-        return bin_search_rec(h, i, m-1, time);
-    }
-    return m;
-}
-
 // finds the position in the heap corresponding to the current time.
-// static int bin_search(ProcessHeap h, unsigned char time){
-//     if (!h || h->size <= 0) return -1;
-//     int i = 0;
-//     int j = h->size;
-//     int m;
-//     while (i < j){
-//         m = (i + j)/2;
-//         if (time > STIME(h->node[m])) i = m + 1;
-//         else j = m;
-//     }
-//     return i;
-// }
-
-// finds the position in the heap corresponding to the current time.
+// WARNING: May return position out of array bounds.
 static int bin_search(ProcessHeap h, unsigned char time){
-    assert(h);
-    return bin_search_rec(h, 0, h->size - 1, time);
+    if (!h || h->size <= 0) return -1;
+    int i = 0;
+    int j = h->size;
+    int m;
+    while (i < j){
+        m = (i + j)/2;
+        if (time > STIME(h->node[m])) i = m + 1;
+        else j = m;
+    }
+    return i;
 }
 
 // finds the position the process should be in the heap, 
 // assuming the heap is ordered by the start time of processes.
+// WARNING: May return position out of array bounds.
 static int searchProcess(ProcessHeap h, Process p){
     assert(h);
     assert(p);
@@ -184,9 +158,7 @@ static void insertHeap(ProcessHeap h, Process new){
         int index = searchProcess(h, new); // if -1 the heap is empty
         if (index < 0)
             h->node[0] = new;
-        else if (index == h->size - 1 && PROCESS_CMP(new, h->node[index]))
-            h->node[h->size] = new;
-        else{
+        else {
             // notice this gives us worst case O(n^2).
             for (int i = h->size; i > index; i--) 
                 h->node[i] = h->node[i - 1];
@@ -555,7 +527,7 @@ Process next_process(ProcessTable table, unsigned char cur_time){
     // if it isn't will be really easy to determine its policy then.
 
     // figure out the position close to which the REAL-TIME process to run would be.
-    int pos = table->real_time ? bin_search(table->real_time, cur_time) : -1;
+    int pos = bin_search(table->real_time, cur_time);
     
     // In case pos returns negative, there are no REAL-TIME processes to run.
     // So we check that.
@@ -564,47 +536,45 @@ Process next_process(ProcessTable table, unsigned char cur_time){
         // If the position is out of bounds, 
         // then only the last process may possibly be allowed to run.
         // So we handle that case.
-        // if(pos >= table->real_time->size){
-        //     Process cur = table->real_time->node[table->real_time->size - 1];
-        //     char cur_ran = table->real_time->ran[table->real_time->size - 1];
-        //     if (cur_time < ETIME(cur))
-        //         if (!cur_ran) return cur;
-        //     return next_process(table, ETIME(cur));
-        // }
-
-
-        // get previous and current process
-        Process prev = pos > 0 ? table->real_time->node[pos - 1] : NULL;
-        char prev_ran = pos > 0 ? table->real_time->ran[pos - 1] : 0;
-        Process cur = table->real_time->node[pos];
-        char cur_ran = table->real_time->ran[pos];
-
-        // Now we know that start time of prev < cur_time 
-
-        // So we check first if the end time of prev is already up, 
-        // if it isn't, and the process has not yet run its course,
-        // we should simply return prev to run
-        if (prev && !prev_ran && ETIME(prev) > cur_time)
-            return prev;
-
-        // To see if it is cur that has to run, suffices to check
-        // whether curr time is in betwen the start time of cur
-        // inclusive, and the end time of cur, exclusive.
-        // If cur_time is less than the start time 
-        // there will be a least 1 second of difference between them,
-        // and the scheduler can run a lot of processes in one second.
-        // However, if the ran flag is set for cur, we should really be executing
-        // the next process if one is avaiable.
-        if (STIME(cur) <= cur_time && cur_time < ETIME(cur)){
-            if (!cur_ran) return cur;
-            return next_process(table, ETIME(cur));
+        if(pos >= table->real_time->size){
+            Process cur = table->real_time->node[table->real_time->size - 1];
+            char cur_ran = table->real_time->ran[table->real_time->size - 1];
+            if (cur_time < ETIME(cur) && !cur_ran) return cur;
         }
+        else {
+            // get previous and current process
+            Process prev = pos > 0 ? table->real_time->node[pos - 1] : NULL;
+            char prev_ran = pos > 0 ? table->real_time->ran[pos - 1] : 0;
+            Process cur = table->real_time->node[pos];
+            char cur_ran = table->real_time->ran[pos];
 
-        // However, we should also check the case cur MAKES_REFERENCE to prev, in which case,
-        // if prev has already run, we should allow cur to run immediately, unless cur_ran is set.
-        if (POLICY_MAKES_REFERENCE(policy(cur)) && prev_ran){
-            if (!cur_ran) return cur;
-            if (cur_time < ETIME(cur)) return next_process(table, ETIME(cur));
+            // Now we know that start time of prev < cur_time 
+
+            // So we check first if the end time of prev is already up, 
+            // if it isn't, and the process has not yet run its course,
+            // we should simply return prev to run
+            if (prev && !prev_ran && ETIME(prev) > cur_time)
+                return prev;
+
+            // To see if it is cur that has to run, suffices to check
+            // whether curr time is in betwen the start time of cur
+            // inclusive, and the end time of cur, exclusive.
+            // If cur_time is less than the start time 
+            // there will be a least 1 second of difference between them,
+            // and the scheduler can run a lot of processes in one second.
+            // However, if the ran flag is set for cur, we should really be executing
+            // the next process if one is avaiable.
+            if (STIME(cur) <= cur_time && cur_time < ETIME(cur)){
+                if (!cur_ran) return cur;
+                return next_process(table, ETIME(cur));
+            }
+
+            // However, we should also check the case cur MAKES_REFERENCE to prev, in which case,
+            // if prev has already run, we should allow cur to run immediately, unless cur_ran is set.
+            if (POLICY_MAKES_REFERENCE(policy(cur)) && prev_ran){
+                if (!cur_ran) return cur;
+                if (cur_time < ETIME(cur)) return next_process(table, ETIME(cur));
+            }
         }
     }
 
