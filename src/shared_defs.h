@@ -119,6 +119,9 @@ unsigned short policy(Process p);
 // gets end time of a policy
 #define PETIME(x)                             (GET_I(x) + GET_D(x))
 
+// checks whether a Process Makes Reference
+#define PMR(p)                                POLICY_MAKES_REFERENCE(policy(p))
+
 // used for switching a process according to its policy.
 #define PLP(x)                               ((x) & 0x07)
 #define PL(p)                                PLP(policy(p))
@@ -173,6 +176,12 @@ void resolve(Process p, unsigned char start_time);
 
 // Free the memory associated with the process.
 void free_process(Process p);
+
+// Deep copy of processes.
+Process process_deep_copy(Process p);
+
+// Print process to stdout.
+void print_process(Process p);
 
 // exception handler.
 void handle(char* message, ...);

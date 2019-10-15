@@ -105,10 +105,13 @@ static void freeQueue(ProcessQueue queue){
 static struct process_heap{
     // the array of processes.
 	Process node[MAX_RTIME];
+
     // flag tells whether given process ran this minute.
     char ran[MAX_RTIME];
+
     // total time in seconds used each 60 seconds for REAL-TIME processes in the heap.
     char time_used;
+    
     // size of heap array.
 	int size;
 };
@@ -571,7 +574,7 @@ Process next_process(ProcessTable table, unsigned char cur_time){
 
             // However, we should also check the case cur MAKES_REFERENCE to prev, in which case,
             // if prev has already run, we should allow cur to run immediately, unless cur_ran is set.
-            if (POLICY_MAKES_REFERENCE(policy(cur)) && prev_ran){
+            if (PMR(cur) && prev_ran){
                 if (!cur_ran) return cur;
                 if (cur_time < ETIME(cur)) return next_process(table, ETIME(cur));
             }
@@ -604,6 +607,125 @@ void reset(ProcessTable table){
 
     // Reset time run for ROUND-ROBIN processes.
     if (table->robin) table->robin->time_run = 0;
+}
+
+// Prints out the whole current state of the process table.
+void table_show(ProcessTable table){
+    if (!table){
+        puts("\nTHERE IS NO TABLE TO PRINT.");
+        return;
+    }
+    
+    Process cur;
+    ProcessQueue level;
+    char cur_ran;
+    unsigned char numlevels;
+    unsigned char blocked_levels;
+    unsigned char active_levels;
+    unsigned char empty_levels;
+    unsigned int total_priority_time;
+    char robin_full;
+    char real_time_full;
+    int i;
+    Node process;
+
+    // figure out number of total, active, empty and blocked levels.
+    numlevels = 0;
+    blocked_levels = 0;
+    total_priority_time = 0;
+    for (i = 0; i < PRIOR_LEVELS; i++){
+        level = table->levels[i];
+        if  (level && !queueEmpty(level)){
+            numlevels++;
+            total_priority_time += level->time_run;
+            if (!runnable(table, i)) blocked_levels++;
+        } 
+    }
+    active_levels = numlevels - blocked_levels;
+    empty_levels = PRIOR_LEVELS - numlevels;
+
+    // check whether there are ROUND-ROBIN processes.
+    robin_full = table->robin && !queueEmpty(table->robin);
+
+    // check whether there are REAL-TIME processes.
+    real_time_full = table->real_time && table->real_time->size;
+
+    // Prints out general information about the table.
+    puts("\nPROCESS TABLE:");
+    printf("Quantum: %d milliseconds.\n", table->quantum);
+    printf("Run precedence: %s.\n", table->run_priority ? "PRIORITY" : "ROUND-ROBIN");
+    printf("\n");
+
+    // Print REAL-TIME processes.
+    if (real_time_full){
+        puts("\tREAL-TIME PROCESSES:");
+        printf("\tTotal time allocated: %d.\n", table->real_time->time_used);
+
+        printf("\n");
+
+        for (i = 0; i < table->real_time->size; i++){
+            cur = table->real_time->node[i];
+            cur_ran = table->real_time->ran[i];
+
+            print_process(cur);
+
+            if (cur_ran)
+                printf("\t\tand has already run this minute.\n");
+            else
+                printf("\t\tand has not yet run this minute.\n");
+
+            printf("\n");
+        }
+    }
+    else
+        printf("\tNo REAL-TIME processes.\n\n");
+
+    // Print PRIORITY based processes.
+    if (numlevels){
+        puts("\tPRIORITY BASED PROCESSES:");
+        printf("\tTotal time used: %d milliseconds.\n", total_priority_time);
+        printf("\tActive levels: %d.\n", active_levels);
+        printf("\tBlocked levels: %d.\n", blocked_levels);
+        printf("\tEmpty levels: %d.\n", empty_levels);
+        printf("\n");
+
+        for (i = 0; i < PRIOR_LEVELS; i++){
+            level = table->levels[i];
+            if (level && !queueEmpty(level)){
+                printf("\tPRIORITY LEVEL %d.\n", i);
+                printf("\tStatus: %s.\n", runnable(table, i) ? "ACTIVE" : "BLOCKED");
+                printf("\n");
+                for (process = level->head; process; process = process->next){
+                    cur = process->p;
+                    print_process(cur);
+                    printf(".\n");
+                }
+                printf("\tTime run: %d.\n", level->time_run);
+                printf("\n");
+            }
+        }
+    }
+    else
+        printf("\tNo PRIORITY based processes.\n");
+    
+    printf("\n");
+
+    // Print ROUND-ROBIN processes.
+    if (robin_full){
+        puts("\tROUND-ROBIN PROCESSES:");
+        printf("\tTotal time used: %d milliseconds.\n", table->robin->time_run);
+
+        for (process = table->robin->head; process; process = process->next){
+            printf("\n");
+            cur = process->p;
+            print_process(cur);
+        }
+    }
+    else
+        printf("\tNo ROUND-ROBIN processes.\n");
+    
+    puts("\nEND TABLE");
+    
 }
 
 // Gets the current time quantum for round robin processes.

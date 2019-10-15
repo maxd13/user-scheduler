@@ -49,5 +49,8 @@ Process next_process(ProcessTable table, unsigned char cur_time);
 // This routine should be called every 60 seconds.
 void reset(ProcessTable table);
 
+// Prints out the whole current state of the process table.
+void table_show(ProcessTable table);
+
 // Gets the current time quantum for round robin processes.
 unsigned short getQuantum(ProcessTable table);

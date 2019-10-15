@@ -29,6 +29,10 @@ void test_set_and_get_quantum(void){
     TEST_ASSERT_EQUAL_INT16(quantum, getQuantum(table));
     Process next = next_process(table, 0);
     TEST_ASSERT_EQUAL_PTR(p, next);
+
+    // We can show the table to manually check that it works out.
+    // table_show(table);
+
     // free everything.
     // p was popped from the table, so it should be freed separately.
     free_process(p);
@@ -127,6 +131,9 @@ void test_set_and_get_ran(void){
     next = next_process(table, 23);
     TEST_ASSERT_EQUAL_PTR(p, next);
 
+    // We can show the table to manually check that it works out.
+    // table_show(table);
+
     // just free everything now
     free_table(table);
 }
@@ -148,7 +155,7 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
 
 
     // MAKES_REFERENCE flag is supposed to be set automatically. Lets check this.
-    TEST_ASSERT_TRUE(POLICY_MAKES_REFERENCE(policy(ref1)));
+    TEST_ASSERT_TRUE(PMR(ref1));
 
     if (insertProcess(table, ref1, policy(p1), 2, 0)) // added after 2 seconds, when p1 was running.
         TEST_FAIL_MESSAGE("No preemption should have occured");
@@ -159,7 +166,7 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
 
     
     // Lets create a ROUND-ROBIN process to run in between.
-    Process robin = create_process("fortune", ROUND_ROBIN);
+    Process robin = create_process("/usr/games/fortune", ROUND_ROBIN);
     if (insertProcess(table, robin, 0, 0, 0)) // read immediately
         TEST_FAIL_MESSAGE("No preemption should have occured");
     
@@ -244,6 +251,9 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
     TEST_ASSERT_EQUAL_PTR(robin, next);
     TEST_ASSERT_FALSE(insertProcess(table, next, policy(next), 27, QUANTUM));
 
+    // We can show the table to manually check that it works out.
+    // table_show(table);
+
     // just free everything now
     // robin is currently in the table.
     free_table(table);
@@ -251,10 +261,25 @@ void test_referential_process_resolves_correctly_and_runs_right_after(void){
 }
 
 void test_priority_and_robin(void){
+    
+    ProcessTable table = create_table();
+    
+    // priority 0 process
+    Process p0 = create_process("/bin/bash", PRIORITY | P0);
+    TEST_ASSERT_FALSE(insertProcess(table, p0, 0, 0, 0));
 
+    // priority 3 process
+    Process p3 = create_process("/bin/cat", PRIORITY | P3);
+    TEST_ASSERT_FALSE(insertProcess(table, p3, 1, 0, 0));
+
+    // TODO
 }
 
 void test_error_messages_fire(void){
+    // for this test we need to create child
+    // processes to die gruesome and horrible deaths
+    // at the hands of the handler routine.
+    // TODO
 
 }
 
@@ -262,9 +287,10 @@ void test_preemption_occurs(void){
 
 }
 
-void test_levels_which_run_too_long_no_longer_run_until_next_minute(void){
+// should I just test this in test_priority_and_robin ?
+// void test_levels_which_run_too_long_no_longer_run_until_next_minute(void){
 
-}
+// }
 
 int main(void){
     UNITY_BEGIN();

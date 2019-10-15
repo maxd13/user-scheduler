@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <assert.h>
 #include "shared_defs.h"
 
 #define MAX_PATH 100 // maximum size of a file path
@@ -80,7 +81,7 @@ const char* validate_policy(unsigned short policy){
 // Does nothing otherwise.
 void handle_policy(unsigned short policy){
     const char* msg;
-    if(msg = validate_policy(policy)) 
+    if( (msg = validate_policy(policy)) ) 
         handle("policy is not valid: %s\n", msg);
 }
 
@@ -108,6 +109,28 @@ void resolve(Process p, unsigned char start_time){
 // Free the memory associated with the process.
 void free_process(Process p){
     free(p);
+}
+
+// Deep copy of processes.
+Process process_deep_copy(Process p){
+    if (POLICY_MAKES_REFERENCE(p->policy))
+        return create_process_with_relative_schedule(p->path, p->Ipath, p->policy);
+    return create_process(p->path, p->policy);
+}
+
+// Print process to stdout.
+void print_process(Process p){
+    assert(p);
+    unsigned short pol = p->policy;
+    printf("\t\tprocess at %s\n", p->path);
+    // checks MAKES_REFERENCE flag
+    if (POLICY_MAKES_REFERENCE(pol))
+        printf("\t\trefers to %s\n", p->Ipath);
+
+    if (POLICY_REAL_TIME(pol)){
+        printf("\t\tstarts at %d\n", GET_I(pol));
+        printf("\t\tends at %d\n", PETIME(pol));
+    }
 }
 
 // exception handler.
