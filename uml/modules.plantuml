@@ -1,0 +1,53 @@
+' This file was used to produce component
+' diagram image in the README.md
+
+@startuml modules
+
+' scale 800 height
+' scale 600 width
+
+scale 1.5
+
+package source {
+
+    interface "shared_defs.h" as share
+    interface "process_table.h" as ptab
+
+    share .. [process.c]
+    [process_table.c] as ptabc
+    share - ptabc
+    ptabc . ptab
+    [scheduler.c] #IndianRed
+    ptab - [scheduler.c]
+    [interpreter.c] #IndianRed
+    share -left- [interpreter.c]
+    [debugger.c] #IndianRed
+
+    [rax] <<static lib>> #Yellow
+    interface "rax.h" as rh
+    rh .. [rax]
+    ptabc -- rh
+
+    note top of [debugger.c]
+        red components are 
+        standalone executables.
+    end note
+
+}
+
+package test {
+    ptab - [process_table_test.c]
+    share - [process_test.c]
+    [integration_test.c] #IndianRed
+    [Unity] <<static lib>> #Yellow
+    
+    interface "unity.h" as un
+    un .right. [Unity]
+    un .up. [process_test.c]
+    un .up. [process_table_test.c]
+    un .left. [integration_test.c]
+
+
+}
+
+@enduml

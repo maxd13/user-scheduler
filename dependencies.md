@@ -1,5 +1,6 @@
 ---
 date: Sat Oct 12 10:47:23 EDT 2019
+author: Luiz Carlos Rumbelsperger Viana
 ---
 
 ## To get rax:
@@ -46,4 +47,10 @@ rm -rf unity
 rm test/unity/meson.build
 ```
 
-Check the COPYING or LICENSE files in the depency folders for legal information.
+## To get premake5 (optional)
+
+Just download tar from https://github.com/premake/premake-core/releases/download/v5.0.0-alpha14/premake-5.0.0-alpha14-linux.tar.gz and extract the executable somewhere in your PATH.
+
+Check the COPYING or LICENSE files in the dependency folders for legal information.
+
+These dependencies were commited to the project for convenience since they were released with very permissive licenses. So they should already be present in this repository.
