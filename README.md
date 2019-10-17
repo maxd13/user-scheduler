@@ -4,12 +4,6 @@ author: Luiz Carlos Rumbelsperger Viana
 title: "An userland Process Scheduler"
 ---
 
-<style>
-    body{
-        text-align: justify;
-    }
-</style>
-
 #  An userland process scheduler
 
 *<div style = "text-align: center"> Luiz Carlos Rumbelsperger Viana.</div>*
@@ -62,6 +56,8 @@ The structure of the [main source code](src) of the project is divided into:
 - [rax](https://github.com/antirez/rax.git)
 - [Unity](https://github.com/ThrowTheSwitch/Unity.git)
 - [premake5](https://premake.github.io/)
+
+See [dependencies.md](dependencies.md) for details.
 
 ### Full structure diagram
 
