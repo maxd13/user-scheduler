@@ -4,12 +4,18 @@
 // but both should be linked with process.c
 #pragma once
 
-#define EVER ;;  
+#define EVER ;;
+
+// maximum size of a file path
+#define MAX_PATH 100
+
+// size of process struct
+#define PROCESS_SIZE 208
 
 typedef struct process* Process;
 
 // Creates a new Process.
-// A process which does not make reference to another is immutable,
+// A process which does not make reference to another is immutable except for PID value,
 // so after creation its path and policy cannot be changed.
 Process create_process(const char* path, unsigned short policy);
 
@@ -18,7 +24,7 @@ Process create_process(const char* path, unsigned short policy);
 // but for the convenience of the user it is set automatically by the function call
 // if it is not set. See Ipath below for details.
 // A process with an Ipath can have its policy changed so as to have a new I value, 
-// but otherwise it cannot change in any other way.
+// but otherwise it can only have its PID changed.
 // See resolve below for details.
 Process create_process_with_relative_schedule(const char* path, char* Ipath, unsigned short policy);
 
@@ -179,6 +185,15 @@ void free_process(Process p);
 
 // Deep copy of processes.
 Process process_deep_copy(Process p);
+
+// Deep copy of a process setting a new PID value. 
+Process process_pid(Process p, int pid);
+
+// Get PID of process.
+// When the process is created the PID is set to 0,
+int get_pid(Process p);
+
+int set_pid(Process p, int pid);
 
 // Print process to stdout.
 void print_process(Process p);

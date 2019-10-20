@@ -54,3 +54,7 @@ void table_show(ProcessTable table);
 
 // Gets the current time quantum for round robin processes.
 unsigned short getQuantum(ProcessTable table);
+
+// gets time in seconds until the next REAL-TIME process is supposed to run.
+// return -1 if there is no next process.
+char time_to_next_real_time(ProcessTable table, unsigned char cur_time);

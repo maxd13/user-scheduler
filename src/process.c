@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -5,14 +7,14 @@
 #include <assert.h>
 #include "shared_defs.h"
 
-#define MAX_PATH 100 // maximum size of a file path
-
 struct process{
     // path to the executable process. 
     // Allows relative pathnames and searchs executables based on the PATH envinroment variable.
     char path[MAX_PATH];
     char Ipath[MAX_PATH]; // path that could be specified with the I option.
     unsigned short policy; // this is configured by bits. See the macros in shared_defs.h for details.
+    // PID of process is only used by sheduler. Defaults to 0.
+    int pid;
 };
 
 // Creates a new Process.
@@ -26,6 +28,7 @@ Process create_process(const char* path, unsigned short policy){
     strcpy(new->path, path);
     strcpy(new->Ipath, "");
     new->policy = policy;
+    new->pid = 0;
     return new;
 }
 
@@ -108,6 +111,8 @@ void resolve(Process p, unsigned char start_time){
 
 // Free the memory associated with the process.
 void free_process(Process p){
+    if (p->pid) 
+        kill(p->pid, SIGKILL);
     free(p);
 }
 
@@ -117,6 +122,19 @@ Process process_deep_copy(Process p){
         return create_process_with_relative_schedule(p->path, p->Ipath, p->policy);
     return create_process(p->path, p->policy);
 }
+
+// Deep copy of a process setting a new PID value. 
+Process process_pid(Process p, int pid){
+    Process cpy = process_deep_copy(p);
+    cpy->pid = pid;
+    return cpy;
+}
+
+// Get PID of process.
+// When the process is created the PID is set to 0,
+int get_pid(Process p) { return p->pid; }
+
+int set_pid(Process p, int pid) { p->pid = pid; }
 
 // Print process to stdout.
 void print_process(Process p){

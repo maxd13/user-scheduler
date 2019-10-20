@@ -441,7 +441,7 @@ char insertProcess(ProcessTable table, Process p, unsigned short cur_policy, uns
             // when the current process is also priority based and the added process 
             // has greater priority then the current one.
             // It should also be checked whether the priority level of the added process can still keep running
-            preemption = !cur_time && 
+            preemption = !time_run_last && 
                          POLICY_PRIORITY(cur_policy) &&
                          priority > GET_PRIORITY(cur_policy) &&
                          runnable(table, priority);
@@ -560,7 +560,7 @@ Process next_process(ProcessTable table, unsigned char cur_time){
                 return prev;
 
             // To see if it is cur that has to run, suffices to check
-            // whether curr time is in betwen the start time of cur
+            // whether cur_time is in betwen the start time of cur
             // inclusive, and the end time of cur, exclusive.
             // If cur_time is less than the start time 
             // there will be a least 1 second of difference between them,
@@ -731,4 +731,38 @@ void table_show(ProcessTable table){
 // Gets the current time quantum for round robin processes.
 unsigned short getQuantum(ProcessTable table){
     return table->quantum;
+}
+
+// gets time in seconds until the next REAL-TIME process is supposed to run.
+// return -1 if there is no next process.
+char time_to_next_real_time(ProcessTable table, unsigned char cur_time){
+    assert(table);
+
+    // figure out the position close to which the REAL-TIME process to run would be.
+    int pos = bin_search(table->real_time, cur_time);
+    
+    // In case pos returns negative, there are no REAL-TIME processes to run.
+    if (pos < 0) return -1;
+
+    // If the position is out of bounds,
+    // there is no next process
+    if (pos >= table->real_time->size) return -1;
+
+    Process cur = table->real_time->node[pos];
+    char cur_ran = table->real_time->ran[pos];
+
+    // get supposed time
+    char time = STIME(cur) - cur_time;
+
+    if (time > 0) {
+        if (!cur_ran) return time;
+        else return time + DTIME(cur) + time_to_next_real_time(table, ETIME(cur));
+    }
+    
+    // if time is 0, this means the current process to run is cur,
+    // so what we want is actually the process after that.
+    if (time == 0) 
+        return DTIME(cur) + time_to_next_real_time(table, ETIME(cur));
+
+    return -1;
 }
