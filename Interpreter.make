@@ -13,16 +13,16 @@ endif
 ifeq ($(config),debug)
   RESCOMP = windres
   TARGETDIR = build/bin/Debug
-  TARGET = $(TARGETDIR)/ProcessTableTest
-  OBJDIR = obj/Debug/ProcessTableTest
-  DEFINES += -DDEBUG -DTEST
+  TARGET = $(TARGETDIR)/Interpreter
+  OBJDIR = obj/Debug/Interpreter
+  DEFINES += -DDEBUG
   INCLUDES +=
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -Wall
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -Wall
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lm
+  LIBS +=
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS)
   LINKCMD = $(CC) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
@@ -40,16 +40,16 @@ endif
 ifeq ($(config),release)
   RESCOMP = windres
   TARGETDIR = build/bin/Release
-  TARGET = $(TARGETDIR)/ProcessTableTest
-  OBJDIR = obj/Release/ProcessTableTest
-  DEFINES += -DNDEBUG -DTEST
+  TARGET = $(TARGETDIR)/Interpreter
+  OBJDIR = obj/Release/Interpreter
+  DEFINES += -DNDEBUG
   INCLUDES +=
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O2
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O2
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lm
+  LIBS +=
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -s
   LINKCMD = $(CC) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
@@ -65,13 +65,8 @@ all: prebuild prelink $(TARGET)
 endif
 
 OBJECTS := \
+	$(OBJDIR)/interpreter.o \
 	$(OBJDIR)/process.o \
-	$(OBJDIR)/process_table.o \
-	$(OBJDIR)/crc16.o \
-	$(OBJDIR)/rax.o \
-	$(OBJDIR)/rc4rand.o \
-	$(OBJDIR)/process_table_test.o \
-	$(OBJDIR)/unity.o \
 
 RESOURCES := \
 
@@ -83,7 +78,7 @@ ifeq (.exe,$(findstring .exe,$(ComSpec)))
 endif
 
 $(TARGET): $(GCH) ${CUSTOMFILES} $(OBJECTS) $(LDDEPS) $(RESOURCES) | $(TARGETDIR)
-	@echo Linking ProcessTableTest
+	@echo Linking Interpreter
 	$(SILENT) $(LINKCMD)
 	$(POSTBUILDCMDS)
 
@@ -106,7 +101,7 @@ else
 endif
 
 clean:
-	@echo Cleaning ProcessTableTest
+	@echo Cleaning Interpreter
 ifeq (posix,$(SHELLTYPE))
 	$(SILENT) rm -f  $(TARGET)
 	$(SILENT) rm -rf $(OBJDIR)
@@ -130,25 +125,10 @@ else
 $(OBJECTS): | $(OBJDIR)
 endif
 
+$(OBJDIR)/interpreter.o: src/interpreter.c
+	@echo $(notdir $<)
+	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/process.o: src/process.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/process_table.o: src/process_table.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/crc16.o: src/rax/crc16.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/rax.o: src/rax/rax.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/rc4rand.o: src/rax/rc4rand.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/process_table_test.o: test/process_table_test.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/unity.o: test/unity/unity.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 

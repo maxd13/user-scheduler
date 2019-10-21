@@ -13,9 +13,9 @@ endif
 ifeq ($(config),debug)
   RESCOMP = windres
   TARGETDIR = build/bin/Debug
-  TARGET = $(TARGETDIR)/ProcessTableTest
-  OBJDIR = obj/Debug/ProcessTableTest
-  DEFINES += -DDEBUG -DTEST
+  TARGET = $(TARGETDIR)/Scheduler
+  OBJDIR = obj/Debug/Scheduler
+  DEFINES += -DDEBUG
   INCLUDES +=
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
@@ -40,9 +40,9 @@ endif
 ifeq ($(config),release)
   RESCOMP = windres
   TARGETDIR = build/bin/Release
-  TARGET = $(TARGETDIR)/ProcessTableTest
-  OBJDIR = obj/Release/ProcessTableTest
-  DEFINES += -DNDEBUG -DTEST
+  TARGET = $(TARGETDIR)/Scheduler
+  OBJDIR = obj/Release/Scheduler
+  DEFINES += -DNDEBUG
   INCLUDES +=
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
@@ -70,8 +70,7 @@ OBJECTS := \
 	$(OBJDIR)/crc16.o \
 	$(OBJDIR)/rax.o \
 	$(OBJDIR)/rc4rand.o \
-	$(OBJDIR)/process_table_test.o \
-	$(OBJDIR)/unity.o \
+	$(OBJDIR)/scheduler.o \
 
 RESOURCES := \
 
@@ -83,7 +82,7 @@ ifeq (.exe,$(findstring .exe,$(ComSpec)))
 endif
 
 $(TARGET): $(GCH) ${CUSTOMFILES} $(OBJECTS) $(LDDEPS) $(RESOURCES) | $(TARGETDIR)
-	@echo Linking ProcessTableTest
+	@echo Linking Scheduler
 	$(SILENT) $(LINKCMD)
 	$(POSTBUILDCMDS)
 
@@ -106,7 +105,7 @@ else
 endif
 
 clean:
-	@echo Cleaning ProcessTableTest
+	@echo Cleaning Scheduler
 ifeq (posix,$(SHELLTYPE))
 	$(SILENT) rm -f  $(TARGET)
 	$(SILENT) rm -rf $(OBJDIR)
@@ -145,10 +144,7 @@ $(OBJDIR)/rax.o: src/rax/rax.c
 $(OBJDIR)/rc4rand.o: src/rax/rc4rand.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/process_table_test.o: test/process_table_test.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/unity.o: test/unity/unity.c
+$(OBJDIR)/scheduler.o: src/scheduler.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 

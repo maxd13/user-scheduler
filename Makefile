@@ -9,17 +9,33 @@ ifndef verbose
 endif
 
 ifeq ($(config),debug)
+  Scheduler_config = debug
+  Interpreter_config = debug
   ProcessTableTest_config = debug
 endif
 ifeq ($(config),release)
+  Scheduler_config = release
+  Interpreter_config = release
   ProcessTableTest_config = release
 endif
 
-PROJECTS := ProcessTableTest
+PROJECTS := Scheduler Interpreter ProcessTableTest
 
 .PHONY: all clean help $(PROJECTS) 
 
 all: $(PROJECTS)
+
+Scheduler:
+ifneq (,$(Scheduler_config))
+	@echo "==== Building Scheduler ($(Scheduler_config)) ===="
+	@${MAKE} --no-print-directory -C . -f Scheduler.make config=$(Scheduler_config)
+endif
+
+Interpreter: Scheduler
+ifneq (,$(Interpreter_config))
+	@echo "==== Building Interpreter ($(Interpreter_config)) ===="
+	@${MAKE} --no-print-directory -C . -f Interpreter.make config=$(Interpreter_config)
+endif
 
 ProcessTableTest:
 ifneq (,$(ProcessTableTest_config))
@@ -28,6 +44,8 @@ ifneq (,$(ProcessTableTest_config))
 endif
 
 clean:
+	@${MAKE} --no-print-directory -C . -f Scheduler.make clean
+	@${MAKE} --no-print-directory -C . -f Interpreter.make clean
 	@${MAKE} --no-print-directory -C . -f ProcessTableTest.make clean
 
 help:
@@ -40,6 +58,8 @@ help:
 	@echo "TARGETS:"
 	@echo "   all (default)"
 	@echo "   clean"
+	@echo "   Scheduler"
+	@echo "   Interpreter"
 	@echo "   ProcessTableTest"
 	@echo ""
 	@echo "For more information, see https://github.com/premake/premake-core/wiki"

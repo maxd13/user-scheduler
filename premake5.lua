@@ -23,14 +23,19 @@ workspace "Process Scheduler"
     -- Turn on compiler optimizations for release builds
     optimize "On"
 
-  -- -- Scheduler build
-  -- project "Scheduler"
-  --   kind "ConsoleApp"
-  --   -- recursively globs all .h and .c files from src folder.
-  --   files { "src/**.h", "src/**.c" }
-  --   removefiles { "src/interpreter.c" } 
+  -- Scheduler build
+  project "Scheduler"
+    kind "ConsoleApp"
+    -- recursively globs all .h and .c files from src folder.
+    files { "src/**.h", "src/**.c" }
+    removefiles { "src/interpreter.c" }
+    links { "m" }
   
-  -- project "Interpreter"
+  -- Interpreter build
+  project "Interpreter"
+    kind "ConsoleApp"
+    files { "src/shared_defs.h", "src/process.c", "src/interpreter.c" }
+    dependson { "Scheduler" }
     
   project "ProcessTableTest"
     kind "ConsoleApp"
