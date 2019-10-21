@@ -28,7 +28,7 @@ workspace "Process Scheduler"
     kind "ConsoleApp"
     -- recursively globs all .h and .c files from src folder.
     files { "src/**.h", "src/**.c" }
-    removefiles { "src/interpreter.c" }
+    removefiles { "src/interpreter.c",  "src/debugger.c"}
     links { "m" }
   
   -- Interpreter build
@@ -43,11 +43,5 @@ workspace "Process Scheduler"
     files { "src/**.h", "src/**.c" }
     files { "test/process_table_test.c" }
     files { "test/unity/*.h", "test/unity/*.c" }
-    removefiles { "src/interpreter.c", "src/scheduler.c" } 
+    removefiles { "src/interpreter.c", "src/scheduler.c", "src/debugger.c" } 
     links { "m" }
-
-  -- project "SchedulerTest"
-  --   kind "ConsoleApp"
-  --   defines { "TEST" }
-  --   links { "Scheduler" }
-  --   files {"test/**.h", "test/**.cpp", "test/pub/*.h"}

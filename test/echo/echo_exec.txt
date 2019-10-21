@@ -1,0 +1,3 @@
+Run ../../../test/echo/echo1.sh, Quantum=200.
+Run ../../../test/echo/echo2.sh PR=2,
+Run ../../../test/echo/echo3.sh I=20 D=10,
