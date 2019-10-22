@@ -89,7 +89,7 @@ int main(int argc, char const *argv[]){
         printf("Reading from file...\n");
         while (fgets(instruction, INSTRUCTION_SIZE, in)){
             strcpy(buffer[pos++], instruction);
-            printf("\tInstruction read. %s\n", instruction);
+            printf("\tInstruction read: %s\n", instruction);
         }
 
         fclose(in);

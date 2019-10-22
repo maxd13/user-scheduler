@@ -100,20 +100,28 @@ static void check_minute(){
     }
 }
 
+// static FILE* tmp;
+
 int main(void){
     // set values for static variables.
     table = create_table();
     p = NULL;
-    puts("BR 0");
+    
+    // tmp = fopen("scheduler.txt", "w");
+
+    puts("BR 0.");
 
     // reference shared memory area with key 0x2230
     // notice 0x2230 = 8752. Hexadecimal is better for use with ipcs.
-    segment = shmget (0x2230, 1, 0);
+    segment = shmget (0x2230, 1, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     if(segment == -1) handle("segment error\n.");
 
     // attach to shared memory area.
     shared = shmat(segment, 0, 0);
     if(shared == -1) handle("segment attachment error\n.");
+
+    puts("BR 1.");
+    // fclose(tmp);
 
     // registers multiple signal handlers.
     signal(SIGUSR1, start_process);
@@ -172,6 +180,8 @@ static void finish(int signal){
 
     // destroy process table.
     free_table(table);
+
+    // fclose(tmp);
     
     // free current process in case it isn't at the table
     if (p && !POLICY_REAL_TIME(policy(p))){

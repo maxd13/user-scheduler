@@ -15,6 +15,7 @@ workspace "Process Scheduler"
     -- Ensure symbols are bundled with debug builds
     symbols "On"
     buildoptions { "-Wall" }
+    debugger "GDB"
 
   filter "configurations:Release"
     -- Add the preprocessor definition NDEBUG to release builds
@@ -36,7 +37,14 @@ workspace "Process Scheduler"
     kind "ConsoleApp"
     files { "src/shared_defs.h", "src/process.c", "src/interpreter.c" }
     dependson { "Scheduler" }
-    
+
+  -- Integration tests
+  project "Integration"
+    kind "ConsoleApp"
+    files { "src/shared_defs.h", "src/process.c" }
+    files { "test/integration_test.c" }
+    dependson { "Scheduler" }
+
   project "ProcessTableTest"
     kind "ConsoleApp"
     defines { "TEST" }
