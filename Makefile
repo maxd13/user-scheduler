@@ -10,18 +10,20 @@ endif
 
 ifeq ($(config),debug)
   Scheduler_config = debug
+  SchedulerTest_config = debug
   Interpreter_config = debug
   Integration_config = debug
   ProcessTableTest_config = debug
 endif
 ifeq ($(config),release)
   Scheduler_config = release
+  SchedulerTest_config = release
   Interpreter_config = release
   Integration_config = release
   ProcessTableTest_config = release
 endif
 
-PROJECTS := Scheduler Interpreter Integration ProcessTableTest
+PROJECTS := Scheduler SchedulerTest Interpreter Integration ProcessTableTest
 
 .PHONY: all clean help $(PROJECTS) 
 
@@ -31,6 +33,12 @@ Scheduler:
 ifneq (,$(Scheduler_config))
 	@echo "==== Building Scheduler ($(Scheduler_config)) ===="
 	@${MAKE} --no-print-directory -C . -f Scheduler.make config=$(Scheduler_config)
+endif
+
+SchedulerTest:
+ifneq (,$(SchedulerTest_config))
+	@echo "==== Building SchedulerTest ($(SchedulerTest_config)) ===="
+	@${MAKE} --no-print-directory -C . -f SchedulerTest.make config=$(SchedulerTest_config)
 endif
 
 Interpreter: Scheduler
@@ -53,6 +61,7 @@ endif
 
 clean:
 	@${MAKE} --no-print-directory -C . -f Scheduler.make clean
+	@${MAKE} --no-print-directory -C . -f SchedulerTest.make clean
 	@${MAKE} --no-print-directory -C . -f Interpreter.make clean
 	@${MAKE} --no-print-directory -C . -f Integration.make clean
 	@${MAKE} --no-print-directory -C . -f ProcessTableTest.make clean
@@ -68,6 +77,7 @@ help:
 	@echo "   all (default)"
 	@echo "   clean"
 	@echo "   Scheduler"
+	@echo "   SchedulerTest"
 	@echo "   Interpreter"
 	@echo "   Integration"
 	@echo "   ProcessTableTest"

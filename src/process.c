@@ -91,6 +91,7 @@ void handle_policy(unsigned short policy){
 // Path of the process executable.
 // Allows relative pathnames and searches executables based on the PATH environment variable.
 char* path(Process p){
+    assert(p);
     return p->path;
 }
 
@@ -132,7 +133,10 @@ Process process_pid(Process p, int pid){
 
 // Get PID of process.
 // When the process is created the PID is set to 0,
-int get_pid(Process p) { return p->pid; }
+int get_pid(Process p) {
+    assert(p); 
+    return p->pid; 
+}
 
 int set_pid(Process p, int pid) { p->pid = pid; }
 

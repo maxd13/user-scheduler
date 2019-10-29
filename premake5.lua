@@ -31,6 +31,15 @@ workspace "Process Scheduler"
     files { "src/**.h", "src/**.c" }
     removefiles { "src/interpreter.c",  "src/debugger.c"}
     links { "m" }
+
+  
+  -- Scheduler Test build
+  project "SchedulerTest"
+    kind "ConsoleApp"
+    defines { "TEST" }
+    files { "src/**.h", "src/**.c" }
+    removefiles { "src/interpreter.c",  "src/debugger.c"}
+    links { "m" }
   
   -- Interpreter build
   project "Interpreter"

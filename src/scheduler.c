@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
 #include <assert.h>
 #include "process_table.h"
@@ -31,14 +32,14 @@ static int segment;
 static pid_t fork_util(const char* path){
     pid_t pid;
 
-    if( (pid = fork()) < 0){ 
+    if ( (pid = fork()) < 0){ 
         handle("failed to start process at %s\n", path);
     }
 
-    if (pid == 0){
+    else if (pid == 0){
         execlp(path, path, (char*) 0);
     }
-    
+
     return pid;
 }
 // forks new child process to exec program at path and sends a SIGSTOP to new child.
@@ -70,7 +71,7 @@ static void disarm_timer(){
 // stops the current process, mark it as ran and make sure it is in the table.
 // the current process is then set to NULL.
 static void disable_current_process(){
-    if (p){
+    if (p) {
         pid_t pid = get_pid(p);
         unsigned short pol = policy(p);
         __useconds_t time_ran = get_time_ran();
@@ -100,28 +101,43 @@ static void check_minute(){
     }
 }
 
-// static FILE* tmp;
+#if defined(TEST)
+int context_switches;
+#endif // TEST
 
 int main(void){
     // set values for static variables.
     table = create_table();
     p = NULL;
     
-    // tmp = fopen("scheduler.txt", "w");
-
-    puts("BR 0.");
-
     // reference shared memory area with key 0x2230
     // notice 0x2230 = 8752. Hexadecimal is better for use with ipcs.
-    segment = shmget (0x2230, 1, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    #if defined(TEST)
+        segment = shmget (0x2230, 1, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+
+        Process prio1 = create_process("test/echo/echo1.sh", PRIORITY | P7);
+        Process prio2 = create_process("test/echo/echo2.sh", PRIORITY | P2);
+        Process rt1 = create_process("test/echo/echo3.sh", REAL_TIME  | SET_I(10) | SET_D(15));
+        Process rr1 = create_process("test/echo/echo4.sh", ROUND_ROBIN);
+        Process rr2 = create_process("test/echo/echo5.sh", ROUND_ROBIN);
+        Process rt2 = create_process("test/echo/echo6.sh", REAL_TIME  | SET_I(9) | SET_D(3));
+        Process rt3 = create_process_with_relative_schedule("test/echo/echo7.sh", "test/echo/echo3.sh", REAL_TIME | MAKES_REFERENCE | SET_D(5));
+
+        Process processes[7] = {prio1, prio2, rt1, rr1, rr2, rt2, rt3};
+
+        int i = 0;
+        pid_t my_pid = getpid();
+        printf("my_pid: %d\n", my_pid);
+        context_switches = 0;
+    #else
+        segment = shmget (0x2230, 1, 0);
+    #endif // TEST
+    
     if(segment == -1) handle("segment error\n.");
 
     // attach to shared memory area.
     shared = shmat(segment, 0, 0);
     if(shared == -1) handle("segment attachment error\n.");
-
-    puts("BR 1.");
-    // fclose(tmp);
 
     // registers multiple signal handlers.
     signal(SIGUSR1, start_process);
@@ -139,7 +155,25 @@ int main(void){
     //wait for signals.
     // whenever a signal is handled, check whether the minute is up
     for(EVER) {
+        #if defined(TEST)
+        
+            if (i == 7) {
+                // finish scheduler after 100 context switches.
+                if (context_switches == 100)
+                    kill(my_pid, SIGINT);
+            }
+            else {
+                printf("starting process %d at %s\n", i, path(processes[i]));
+                memcpy(shared, processes[i++], PROCESS_SIZE);
+                kill(my_pid, SIGUSR1);
+            }
+        #endif // TEST
+
         pause();
+        #if defined(TEST)
+            printf("received OK signal.\n");
+        #endif // TEST
+        
         check_minute();
     }
     return 0;
@@ -160,11 +194,14 @@ void start_process(int signal){
     to_add = process_pid(to_add, to_add_pid);
 
     // now we can allow the interpreter to change memory by sending it a signal.
-    to_add_pid = getppid();
-    kill(to_add_pid, SIGUSR1);
-
+    #ifndef TEST
+        to_add_pid = getppid();
+        kill(to_add_pid, SIGUSR1);
+    #endif
     // update current time
     relative_time = get_rel_time();
+
+    printf("time: %d\n", relative_time);
 
     // insert the new process in the process table,
     // and handle preemption.
@@ -181,8 +218,6 @@ static void finish(int signal){
     // destroy process table.
     free_table(table);
 
-    // fclose(tmp);
-    
     // free current process in case it isn't at the table
     if (p && !POLICY_REAL_TIME(policy(p))){
         kill(get_pid(p), SIGKILL);
@@ -198,7 +233,7 @@ static void context_switch(int signal){
     // seconds
     unsigned char relative_time = get_rel_time();
     pid_t pid;
-    char time_to_next_alarm;
+    int time_to_next_alarm;
     unsigned short pol;
     // if there is a current process we need to
     // make it inactive.
@@ -223,10 +258,12 @@ static void context_switch(int signal){
         setitimer(ITIMER_REAL, &timer, NULL);
         return;
     }
-    
+
     // start p.
     pid = get_pid(p);
     kill(pid, SIGCONT);
+
+    puts("BR 0");
 
     // set start time for current process.
     gettimeofday(&start_time, NULL);
@@ -242,28 +279,40 @@ static void context_switch(int signal){
         break;
     case PRIORITY:
         time_to_next_alarm = time_to_next_real_time(table, relative_time) * 1000;
+        if (time_to_next_alarm < 0) time_to_next_alarm = 10000;
         break;
     }
 
     // it shouldnt be possible for time_to_next_alarm to be negative here.
     assert(time_to_next_alarm > 0);
 
+    puts("BR 1");
+
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = time_to_next_alarm * 1000;
     setitimer(ITIMER_REAL, &timer, NULL);
+
+    #if defined(TEST)
+        context_switches++;
+    #endif // TEST
+    
 }
 
 static void process_ended(int signal){
+    if (!p) return;
     char* str = path(p);
     pid_t pid = get_pid(p);
+    int status;
     
-    waitpid(pid, NULL, 0);
+    
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status)) {
+        pid = fork_util(str);
+        set_pid(p, pid);
 
-    pid = fork_util(str);
-    set_pid(p, pid);
-
-    disarm_timer();
-    context_switch(0);
+        disarm_timer();
+        context_switch(0);
+    }
 }
 
 static void debugger(int signal){

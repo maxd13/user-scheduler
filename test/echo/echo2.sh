@@ -1,2 +1,2 @@
 #!/bin/bash
-echo 2;
+while true; do echo 2; sleep 1; done;

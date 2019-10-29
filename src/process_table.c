@@ -273,10 +273,14 @@ static void flip_runnable(ProcessTable table, unsigned char priority){
 static void can_run(ProcessTable table, unsigned char priority){
     assert(table);
     assert(priority < PRIOR_LEVELS);
+    assert(table->levels[priority]);
+    
     // time avaible for priority and round robin processes, in seconds.
-    char time_avail = 60 - table->real_time->time_used;
+    char time_avail = 60 - (table->real_time ? table->real_time->time_used : 0);
+    
     // time avaible for the given priority level.
     float priority_time = table->priority_time_limits[priority] * PRIORITY_TIME * time_avail;
+
     // if the time the priority level has run is greater than the avaible time, it should not continue
     // to run until the next minute.
     if ((table->levels[priority]->time_run / 1000.0) > priority_time){
