@@ -263,8 +263,6 @@ static void context_switch(int signal){
     pid = get_pid(p);
     kill(pid, SIGCONT);
 
-    puts("BR 0");
-
     // set start time for current process.
     gettimeofday(&start_time, NULL);
 

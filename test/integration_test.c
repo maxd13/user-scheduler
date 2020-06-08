@@ -19,7 +19,7 @@ void test_standalone_scheduler_executes_abstract_exec_txt(void){
     pid_t scheduler;
     void* shared;
 
-    signal(SIGUSR2, ok_signal);
+    signal(SIGUSR1, ok_signal);
 
     Process prio1 = create_process("echo/echo1.sh", PRIORITY | P7);
     Process prio2 = create_process("echo/echo2.sh", PRIORITY | P2);
@@ -39,7 +39,7 @@ void test_standalone_scheduler_executes_abstract_exec_txt(void){
 
     // attach to shared memory area.
     shared = shmat(segment, 0, 0);
-    if(shared == -1) handle("segment attachment error\n.");
+    if(shared == (void*) -1) handle("segment attachment error\n.");
 
     // start scheduler as child.
     if( (scheduler = fork()) < 0 ){ 
@@ -47,12 +47,12 @@ void test_standalone_scheduler_executes_abstract_exec_txt(void){
     }
 
     else if (scheduler == 0){
-        execl("../build/bin/debug/Scheduler", "scheduler", (char*) 0);   
+        execl("build/bin/Debug/Scheduler", "Scheduler", (char*) 0);   
     }
     else{
 
         printf("scheduler at %d\n", scheduler);
-
+        sleep(2);
         for (int i = 0; i < 7; i++){
             printf("starting process %d at %s\n", i, path(processes[i]));
             memcpy(shared, processes[i], PROCESS_SIZE);
